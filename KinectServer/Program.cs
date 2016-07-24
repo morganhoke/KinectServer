@@ -13,6 +13,9 @@ namespace KinectServer
 {
     class Program
     {
+        private const string HeadKey = "h";
+        private const string RightHandPosKey = "rp";
+        private const string LeftHandPosKey = "lp";
         private static KinectSensor sensor;
         private static Socket socket;
         private static IPEndPoint endPoint;
@@ -51,7 +54,16 @@ namespace KinectServer
                     if (skeleton.TrackingState == SkeletonTrackingState.Tracked)
                     {
                         var head = skeleton.Joints[JointType.Head].Position;
-                        var output = head.X + "," + head.Y + "," + head.Z + "," + DateTime.Now.Ticks + ";";
+                        var headString = HeadKey + "," + head.X + "," + head.Y + "," + head.Z + "," + DateTime.Now.Ticks + ";";
+
+                        var rightHand = skeleton.Joints[JointType.HandRight].Position;
+                        var rhPosString = RightHandPosKey + "," + rightHand.X + "," + rightHand.Y + "," + rightHand.Z + "," + DateTime.Now.Ticks + ";";
+
+                        var leftHand = skeleton.Joints[JointType.HandLeft].Position;
+                        var lhPosString = LeftHandPosKey + "," + leftHand.X + "," + leftHand.Y + "," + leftHand.Z + "," + DateTime.Now.Ticks + ";";
+
+                        var output = headString + rhPosString + lhPosString;
+
                         byte[] bytes = new byte[output.Length * sizeof(char)];
                         socket.SendTo(Encoding.ASCII.GetBytes(output), endPoint);
                     }
@@ -70,7 +82,7 @@ namespace KinectServer
                 }
             }
 
-            if (null != sensor)
+            if (sensor != null)
             {
                 // Turn on the skeleton stream to receive skeleton frames
                 sensor.SkeletonStream.Enable();
@@ -82,12 +94,14 @@ namespace KinectServer
                 try
                 {
                     sensor.Start();
+                    return;
                 }
                 catch (IOException)
                 {
                     sensor = null;
                 }
             }
+            Console.WriteLine("ERROR: could not find a kniect.  Be sure you have all drivers installed and are using a 1st gen kinect.");
         }
 
         private static void InitNetwork()
